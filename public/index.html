@@ -1,0 +1,58 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>Render Power Monitor - Live</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  
+  <!-- Socket.io Client Library -->
+  <script src="/socket.io/socket.io.js"></script>
+
+  <style>
+    :root {
+      --bg-color: #1a1a2e; --card-bg: #16213e; --text-color: #ffffff;
+      --label-color: #a0aec0; --border-color: #2d3748;
+    }
+    body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg-color); color: var(--text-color); padding: 20px; margin: 0; }
+    .header { max-width: 1400px; margin: 0 auto 30px auto; text-align: center; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; max-width: 1400px; margin: 0 auto; }
+    .card { background: var(--card-bg); border-radius: 15px; padding: 20px; border: 1px solid var(--border-color); display: flex; align-items: center; }
+    .icon { font-size: 35px; margin-right: 20px; }
+    .content { display: flex; flex-direction: column; }
+    .label { font-size: 12px; color: var(--label-color); font-weight: 600; text-transform: uppercase; }
+    .value { font-size: 24px; font-weight: 600; }
+    .unit { font-size: 14px; color: var(--label-color); margin-left: 5px; }
+    .fa-bolt { color: #f1c40f; } .fa-exchange-alt { color: #3498db; } .fa-plug { color: #e74c3c; } 
+    .fa-chart-line { color: #2ecc71; } .fa-wave-square { color: #9b59b6; } .fa-percent { color: #e67e22; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1><i class="fas fa-plug" style="color: #f1c40f;"></i> Render Realtime Monitor</h1>
+  </div>
+  
+  <div class="grid">
+    <div class="card"><i class="fas fa-bolt icon"></i><div class="content"><div class="label">VOLTAGE</div><div class="value" id="voltage">0.0<span class="unit">V</span></div></div></div>
+    <div class="card"><i class="fas fa-exchange-alt icon"></i><div class="content"><div class="label">CURRENT</div><div class="value" id="current">0.00<span class="unit">A</span></div></div></div>
+    <div class="card"><i class="fas fa-plug icon"></i><div class="content"><div class="label">POWER</div><div class="value" id="power">0.0<span class="unit">W</span></div></div></div>
+    <div class="card"><i class="fas fa-chart-line icon"></i><div class="content"><div class="label">ENERGY</div><div class="value" id="energy">0.000<span class="unit">kWh</span></div></div></div>
+    <div class="card"><i class="fas fa-wave-square icon"></i><div class="content"><div class="label">FREQUENCY</div><div class="value" id="frequency">0.0<span class="unit">Hz</span></div></div></div>
+    <div class="card"><i class="fas fa-percent icon"></i><div class="content"><div class="label">POWER FACTOR</div><div class="value" id="pf">0.00</div></div></div>
+  </div>
+
+  <script>
+    // সার্ভারের সাথে রিয়েল-টাইম WebSocket কানেকশন তৈরি
+    const socket = io();
+
+    // সার্ভার থেকে নতুন ডেটা আসলেই UI আপডেট হবে অটোমেটিক
+    socket.on('powerUpdate', (data) => {
+      document.getElementById('voltage').innerHTML = data.voltage + '<span class="unit">V</span>';
+      document.getElementById('current').innerHTML = data.current + '<span class="unit">A</span>';
+      document.getElementById('power').innerHTML = data.power + '<span class="unit">W</span>';
+      document.getElementById('energy').innerHTML = data.energy + '<span class="unit">kWh</span>';
+      document.getElementById('frequency').innerHTML = data.frequency + '<span class="unit">Hz</span>';
+      document.getElementById('pf').innerHTML = data.pf;
+    });
+  </script>
+</body>
+</html>
