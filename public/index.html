@@ -1,7 +1,6 @@
 <!DOCTYPE HTML>
 <html>
 <head>
-  <!-- ব্রাউজার ট্যাবের নাম পরিবর্তন -->
   <title>Hall Management by IRZA Labs</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -10,10 +9,10 @@
   <style>
     :root { --bg-color: #0c0c0e; --card-bg: #13131a; --text-color: #ffffff; --border-color: #222227; --accent-color: #00b37e; --bill-color: #ff9f43; }
     body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg-color); color: var(--text-color); padding: 20px; margin: 0; }
-    .container { max-width: 1200px; margin: 0 auto; }
+    .container { max-width: 1300px; margin: 0 auto; }
     .header { text-align: center; margin-bottom: 30px; }
     
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 30px; }
     .card { background: var(--card-bg); border-radius: 12px; padding: 20px; border: 1px solid var(--border-color); display: flex; align-items: center; }
     .card.bill-card { border-color: var(--bill-color); background: linear-gradient(135deg, #13131a 0%, #231912 100%); }
     .icon { font-size: 35px; margin-right: 15px; }
@@ -33,7 +32,6 @@
 <body>
   <div class="container">
     <div class="header">
-      <!-- ড্যাশবোর্ডের মূল নাম পরিবর্তন -->
       <h1><i class="fas fa-charging-station" style="color: var(--accent-color);"></i> Hall Management by IRZA Labs</h1>
     </div>
     
@@ -43,6 +41,11 @@
       <div class="card"><i class="fas fa-microchip icon" style="color:#3498db;"></i><div><div class="label">Current</div><div class="value" id="current">0.00A</div></div></div>
       <div class="card"><i class="fas fa-plug icon" style="color:#e74c3c;"></i><div><div class="label">Power</div><div class="value" id="power">0.0W</div></div></div>
       <div class="card"><i class="fas fa-leaf icon" style="color:#2ecc71;"></i><div><div class="label">Energy Consumed</div><div class="value" id="energy">0.000 kWh</div></div></div>
+      <!-- নতুন ফ্রিকোয়েন্সি কার্ড -->
+      <div class="card"><i class="fas fa-wave-square icon" style="color:#9b59b6;"></i><div><div class="label">Frequency</div><div class="value" id="frequency">0.0 Hz</div></div></div>
+      <!-- নতুন পাওয়ার ফ্যাক্টর কার্ড -->
+      <div class="card"><i class="fas fa-percent icon" style="color:#e67e22;"></i><div><div class="label">Power Factor</div><div class="value" id="pf">0.00</div></div></div>
+      <!-- লাইভ বিল কার্ড -->
       <div class="card bill-card"><i class="fas fa-money-bill-wave icon" style="color:var(--bill-color);"></i><div><div class="label" style="color:var(--bill-color);">Total Bill (Live)</div><div class="value" id="bill" style="color:var(--bill-color);">৳ 0.00</div></div></div>
     </div>
 
@@ -59,6 +62,8 @@
             <th>Voltage</th>
             <th>Current</th>
             <th>Power (W)</th>
+            <th>Frequency</th>
+            <th>P.F.</th>
             <th>Energy (kWh)</th>
             <th>Calculated Bill</th>
           </tr>
@@ -91,6 +96,8 @@
         document.getElementById('current').innerText = data.current + 'A';
         document.getElementById('power').innerText = data.power + 'W';
         document.getElementById('energy').innerText = energyVal.toFixed(3) + ' kWh';
+        document.getElementById('frequency').innerText = (data.frequency || 0) + ' Hz';
+        document.getElementById('pf').innerText = data.pf || '0.00';
         document.getElementById('bill').innerText = '৳ ' + totalBill;
 
         data.calculatedBill = totalBill;
@@ -107,6 +114,8 @@
             <td>${item.voltage}V</td>
             <td>${item.current}A</td>
             <td>${item.power}W</td>
+            <td>${item.frequency || 0} Hz</td>
+            <td>${item.pf || 0}</td>
             <td>${energyVal.toFixed(3)} kWh</td>
             <td class="text-bill">৳ ${billVal}</td>
         </tr>`;
