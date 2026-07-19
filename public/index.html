@@ -7,53 +7,49 @@
   <script src="/socket.io/socket.io.js"></script>
 
   <style>
-    :root { --bg-color: #121214; --card-bg: #1a1a1e; --text-color: #ffffff; --border-color: #29292e; --accent-color: #00b37e; }
+    :root { --bg-color: #0c0c0e; --card-bg: #13131a; --text-color: #ffffff; --border-color: #222227; --accent-color: #00b37e; --bill-color: #ff9f43; }
     body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg-color); color: var(--text-color); padding: 20px; margin: 0; }
-    .container { max-width: 1000px; margin: 0 auto; }
+    .container { max-width: 1200px; margin: 0 auto; }
     .header { text-align: center; margin-bottom: 30px; }
     
-    /* Alert System Style */
-    .alert-box { display: none; background: #f75a68; color: white; padding: 15px; border-radius: 8px; text-align: center; font-weight: bold; margin-bottom: 20px; animation: blink 1.5s infinite; }
-    @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
-
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; }
     .card { background: var(--card-bg); border-radius: 12px; padding: 20px; border: 1px solid var(--border-color); display: flex; align-items: center; }
-    .icon { font-size: 35px; margin-right: 15px; color: var(--accent-color); }
+    .card.bill-card { border-color: var(--bill-color); background: linear-gradient(135deg, #13131a 0%, #231912 100%); }
+    .icon { font-size: 35px; margin-right: 15px; }
     .value { font-size: 24px; font-weight: bold; margin-top: 5px; }
-    .label { font-size: 12px; color: #8d8d99; font-weight: bold; text-transform: uppercase; }
+    .label { font-size: 11px; color: #8d8d99; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
     
-    /* Action & Table Styles */
     .btn-download { background: var(--accent-color); color: white; border: none; padding: 12px 20px; font-size: 14px; font-weight: bold; border-radius: 6px; cursor: pointer; text-decoration: none; display: inline-block; margin-bottom: 20px; }
     .btn-download:hover { background: #00875f; }
     .table-container { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; }
     table { width: 100%; border-collapse: collapse; text-align: left; }
     th, td { padding: 15px; border-bottom: 1px solid var(--border-color); }
-    th { background: #202024; color: #e1e1e6; font-size: 14px; }
-    tr:hover { background: #202024; }
+    th { background: #1c1c22; color: #e1e1e6; font-size: 14px; }
+    tr:hover { background: #1c1c22; }
+    .text-bill { color: var(--bill-color); font-weight: bold; }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <h1><i class="fas fa-charging-station"></i> Smart Power Monitor</h1>
+      <h1><i class="fas fa-charging-station" style="color: var(--accent-color);"></i> Enterprise Power Analytics</h1>
     </div>
-
-    <!-- Alert Banner -->
-    <div id="alertBox" class="alert-box"><i class="fas fa-exclamation-triangle"></i> OVERLOAD WARNING: HIGH POWER CONSUMPTION!</div>
     
     <!-- Realtime Cards -->
     <div class="grid">
       <div class="card"><i class="fas fa-bolt icon" style="color:#f1c40f;"></i><div><div class="label">Voltage</div><div class="value" id="voltage">0.0V</div></div></div>
       <div class="card"><i class="fas fa-microchip icon" style="color:#3498db;"></i><div><div class="label">Current</div><div class="value" id="current">0.00A</div></div></div>
       <div class="card"><i class="fas fa-plug icon" style="color:#e74c3c;"></i><div><div class="label">Power</div><div class="value" id="power">0.0W</div></div></div>
-      <div class="card"><i class="fas fa-leaf icon" style="color:#2ecc71;"></i><div><div class="label">Energy</div><div class="value" id="energy">0.000kWh</div></div></div>
+      <div class="card"><i class="fas fa-leaf icon" style="color:#2ecc71;"></i><div><div class="label">Energy Consumed</div><div class="value" id="energy">0.000 kWh</div></div></div>
+      <!-- নতুন লাইভ বিল কার্ড -->
+      <div class="card bill-card"><i class="fas fa-money-bill-wave icon" style="color:var(--bill-color);"></i><div><div class="label" style="color:var(--bill-color);">Total Bill (Live)</div><div class="value" id="bill" style="color:var(--bill-color);">৳ 0.00</div></div></div>
     </div>
 
     <!-- Download Button -->
-    <a href="/api/download" class="btn-download"><i class="fas fa-file-download"></i> Download Full Excel/CSV Report</a>
+    <a href="/api/download" class="btn-download"><i class="fas fa-file-download"></i> Export Full Bill Report (CSV)</a>
 
     <!-- Recent Logs Table -->
-    <h3><i class="fas fa-history"></i> Recent 10 Log Entries</h3>
+    <h3><i class="fas fa-history"></i> Real-time Cost & Load Logs</h3>
     <div class="table-container">
       <table>
         <thead>
@@ -61,11 +57,13 @@
             <th>Time</th>
             <th>Voltage</th>
             <th>Current</th>
-            <th>Power</th>
+            <th>Power (W)</th>
+            <th>Energy (kWh)</th>
+            <th>Calculated Bill</th>
           </tr>
         </thead>
         <tbody id="tableBody">
-          <!-- Data will load here dynamically -->
+          <!-- Data loads here -->
         </tbody>
       </table>
     </div>
@@ -73,47 +71,53 @@
 
   <script>
     const socket = io();
-    const alertBox = document.getElementById('alertBox');
     const tableBody = document.getElementById('tableBody');
+    
+    // 🇧🇩 বাংলাদেশ ইউনিট প্রাইস (টাকা প্রতি kWh)
+    const UNIT_PRICE = 7.50; 
 
-    // পেজ লোড হলে পুরনো শেষ ১০টি ডেটা টেবিলে দেখানো
+    // পেজ লোড হলে হিস্টোরি আনা
     fetch('/api/history')
       .then(res => res.json())
       .then(data => {
         data.forEach(item => addRowToTable(item, false));
       });
 
-    // রিয়েল-টাইম আপডেট
+    // প্রতি সেকেন্ডে রিয়েল-টাইম আপডেট
     socket.on('powerUpdate', (data) => {
+        const energyVal = parseFloat(data.energy) || 0;
+        // লাইভ বিল হিসাব (Energy * Unit Price)
+        const totalBill = (energyVal * UNIT_PRICE).toFixed(2);
+
         document.getElementById('voltage').innerText = data.voltage + 'V';
         document.getElementById('current').innerText = data.current + 'A';
         document.getElementById('power').innerText = data.power + 'W';
-        document.getElementById('energy').innerText = data.energy + 'kWh';
+        document.getElementById('energy').innerText = energyVal.toFixed(3) + ' kWh';
+        document.getElementById('bill').innerText = '৳ ' + totalBill;
 
-        // ⚠️ অ্যালার্ট কন্ডিশন: পাওয়ার ৪০০ ওয়াটের বেশি হলে লাল ওয়ার্নিং দেখাবে
-        if (parseFloat(data.power) > 400) {
-            alertBox.style.display = 'block';
-        } else {
-            alertBox.style.display = 'none';
-        }
-
-        // টেবিলে নতুন লাইভ ডেটা যোগ করা
+        // টেবিলে পুশ করা
+        data.calculatedBill = totalBill;
         addRowToTable(data, true);
     });
 
     function addRowToTable(item, isNew) {
         const time = item.timestamp ? new Date(item.timestamp).toLocaleTimeString() : new Date().toLocaleTimeString();
+        const energyVal = parseFloat(item.energy) || 0;
+        const billVal = item.calculatedBill || (energyVal * UNIT_PRICE).toFixed(2);
+
         const row = `<tr>
             <td>${time}</td>
             <td>${item.voltage}V</td>
             <td>${item.current}A</td>
             <td>${item.power}W</td>
+            <td>${energyVal.toFixed(3)} kWh</td>
+            <td class="text-bill">৳ ${billVal}</td>
         </tr>`;
         
         if (isNew) {
             tableBody.insertAdjacentHTML('afterbegin', row);
             if (tableBody.children.length > 10) {
-                tableBody.lastElementChild.remove(); // ১০টার বেশি হলে নিচেরটা ডিলিট
+                tableBody.lastElementChild.remove();
             }
         } else {
             tableBody.insertAdjacentHTML('beforeend', row);
