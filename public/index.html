@@ -1,6 +1,7 @@
 <!DOCTYPE HTML>
 <html>
 <head>
+  <!-- ব্রাউজার ট্যাবের নাম পরিবর্তন -->
   <title>Hall Management by IRZA Labs</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -32,7 +33,8 @@
 <body>
   <div class="container">
     <div class="header">
-      <h1><i class="fas fa-charging-station" style="color: var(--accent-color);"></i> Enterprise Power Analytics</h1>
+      <!-- ড্যাশবোর্ডের মূল নাম পরিবর্তন -->
+      <h1><i class="fas fa-charging-station" style="color: var(--accent-color);"></i> Hall Management by IRZA Labs</h1>
     </div>
     
     <!-- Realtime Cards -->
@@ -41,7 +43,6 @@
       <div class="card"><i class="fas fa-microchip icon" style="color:#3498db;"></i><div><div class="label">Current</div><div class="value" id="current">0.00A</div></div></div>
       <div class="card"><i class="fas fa-plug icon" style="color:#e74c3c;"></i><div><div class="label">Power</div><div class="value" id="power">0.0W</div></div></div>
       <div class="card"><i class="fas fa-leaf icon" style="color:#2ecc71;"></i><div><div class="label">Energy Consumed</div><div class="value" id="energy">0.000 kWh</div></div></div>
-      <!-- নতুন লাইভ বিল কার্ড -->
       <div class="card bill-card"><i class="fas fa-money-bill-wave icon" style="color:var(--bill-color);"></i><div><div class="label" style="color:var(--bill-color);">Total Bill (Live)</div><div class="value" id="bill" style="color:var(--bill-color);">৳ 0.00</div></div></div>
     </div>
 
@@ -72,8 +73,6 @@
   <script>
     const socket = io();
     const tableBody = document.getElementById('tableBody');
-    
-    // 🇧🇩 বাংলাদেশ ইউনিট প্রাইস (টাকা প্রতি kWh)
     const UNIT_PRICE = 7.50; 
 
     // পেজ লোড হলে হিস্টোরি আনা
@@ -86,7 +85,6 @@
     // প্রতি সেকেন্ডে রিয়েল-টাইম আপডেট
     socket.on('powerUpdate', (data) => {
         const energyVal = parseFloat(data.energy) || 0;
-        // লাইভ বিল হিসাব (Energy * Unit Price)
         const totalBill = (energyVal * UNIT_PRICE).toFixed(2);
 
         document.getElementById('voltage').innerText = data.voltage + 'V';
@@ -95,7 +93,6 @@
         document.getElementById('energy').innerText = energyVal.toFixed(3) + ' kWh';
         document.getElementById('bill').innerText = '৳ ' + totalBill;
 
-        // টেবিলে পুশ করা
         data.calculatedBill = totalBill;
         addRowToTable(data, true);
     });
