@@ -1,7 +1,7 @@
 {
   "name": "esp32-power-monitor",
   "version": "1.0.0",
-  "description": "Realtime Power Monitor with Graph and DB",
+  "description": "Professional Power Monitor with Login",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
@@ -9,6 +9,7 @@
   "dependencies": {
     "express": "^4.19.2",
     "socket.io": "^4.7.5",
-    "mongoose": "^8.2.0"
+    "mongoose": "^8.2.0",
+    "cookie-parser": "^1.4.6"
   }
 }
