@@ -51,21 +51,21 @@ app.get('/api/history', async (req, res) => {
     }
 });
 
-// এক্সেল/CSV ডাউনলোডে বিল কলাম যুক্ত করা
+// এক্সেল/CSV ডাউনলোডে ফ্রিকোয়েন্সি ও পিএফ কলাম যুক্ত করা
 app.get('/api/download', async (req, res) => {
     try {
         const data = await PowerData.find().sort({ timestamp: -1 });
-        const UNIT_PRICE = 7.50; // BD Unit Price
+        const UNIT_PRICE = 7.50; 
         
-        let csv = 'Timestamp,Voltage(V),Current(A),Power(W),Energy(kWh),Total Bill(BDT)\n';
+        let csv = 'Timestamp,Voltage(V),Current(A),Power(W),Frequency(Hz),Power Factor,Energy(kWh),Total Bill(BDT)\n';
         
         data.forEach(row => {
             const bill = (row.energy * UNIT_PRICE).toFixed(2);
-            csv += `${row.timestamp.toISOString()},${row.voltage},${row.current},${row.power},${row.energy},${bill}\n`;
+            csv += `${row.timestamp.toISOString()},${row.voltage},${row.current},${row.power},${row.frequency || 0},${row.pf || 0},${row.energy},${bill}\n`;
         });
         
         res.setHeader('Content-Type', 'text/csv');
-        res.setHeader('Content-Disposition', 'attachment; filename=professional_billing_report.csv');
+        res.setHeader('Content-Disposition', 'attachment; filename=irzalabs_billing_report.csv');
         res.status(200).send(csv);
     } catch (err) {
         res.status(500).send({ error: err.message });
