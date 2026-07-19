@@ -11,13 +11,13 @@ const io = socketIo(server, { cors: { origin: "*" } });
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Render Environment Variable থেকে কানেকশন নেওয়া
+// MongoDB Atlas কানেকশন
 const mongoURI = process.env.MONGODB_URI;
 mongoose.connect(mongoURI)
   .then(() => console.log("MongoDB Connected Successfully!"))
   .catch(err => console.error("MongoDB Connection Error:", err));
 
-// ডেটাবেস স্কিমা (Schema) তৈরি
+// ডেটাবেস স্কিমা
 const PowerDataSchema = new mongoose.Schema({
     voltage: Number,
     current: Number,
@@ -29,24 +29,39 @@ const PowerDataSchema = new mongoose.Schema({
 });
 const PowerData = mongoose.model('PowerData', PowerDataSchema);
 
-// ESP32 থেকে ডেটা রিসিভ ও সেভ করা
+// ESP32 থেকে ডেটা রিসিভ ও সেভ
 app.post('/api/data', async (req, res) => {
     try {
         const newData = new PowerData(req.body);
-        await newData.save(); // ডেটাবেসে সেভ হচ্ছে
-        
-        io.emit('powerUpdate', req.body); // রিয়েল-টাইম ব্রাউজারে পাঠানো হচ্ছে
+        await newData.save();
+        io.emit('powerUpdate', req.body); 
         res.status(200).send({ message: "Saved and Broadcasted!" });
     } catch (err) {
         res.status(500).send({ error: err.message });
     }
 });
 
-// ওয়েবসাইট লোড হলে শেষ ৩০টি ডেটার ইতিহাস গ্রাফের জন্য পাঠানো
+// শেষ ১০টি ডেটার টেবিল দেখানোর জন্য
 app.get('/api/history', async (req, res) => {
     try {
-        const history = await PowerData.find().sort({ timestamp: -1 }).limit(30);
-        res.json(history.reverse());
+        const history = await PowerData.find().sort({ timestamp: -1 }).limit(10);
+        res.json(history);
+    } catch (err) {
+        res.status(500).send({ error: err.message });
+    }
+});
+
+// সম্পূর্ণ ডেটা CSV আকারে ডাউনলোড করার জন্য
+app.get('/api/download', async (req, res) => {
+    try {
+        const data = await PowerData.find().sort({ timestamp: -1 });
+        let csv = 'Timestamp,Voltage(V),Current(A),Power(W),Energy(kWh)\n';
+        data.forEach(row => {
+            csv += `${row.timestamp.toISOString()},${row.voltage},${row.current},${row.power},${row.energy}\n`;
+        });
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', 'attachment; filename=power_report.csv');
+        res.status(200).send(csv);
     } catch (err) {
         res.status(500).send({ error: err.message });
     }
