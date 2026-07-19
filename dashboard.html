@@ -1,0 +1,127 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>Hall Management by IRZA Labs</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <script src="/socket.io/socket.io.js"></script>
+
+  <style>
+    :root { --bg-color: #0c0c0e; --card-bg: #13131a; --text-color: #ffffff; --border-color: #222227; --accent-color: #00b37e; --bill-color: #ff9f43; }
+    body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg-color); color: var(--text-color); padding: 20px; margin: 0; }
+    .container { max-width: 1300px; margin: 0 auto; }
+    .header { text-align: center; margin-bottom: 30px; position: relative; }
+    .btn-logout { position: absolute; right: 10px; top: 10px; color: #f75a68; text-decoration: none; font-weight: bold; font-size: 14px; border: 1px solid #f75a68; padding: 6px 12px; border-radius: 6px; }
+    .btn-logout:hover { background: rgba(247, 90, 104, 0.1); }
+    
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 30px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 20px; border: 1px solid var(--border-color); display: flex; align-items: center; }
+    .card.bill-card { border-color: var(--bill-color); background: linear-gradient(135deg, #13131a 0%, #231912 100%); }
+    .icon { font-size: 35px; margin-right: 15px; }
+    .value { font-size: 24px; font-weight: bold; margin-top: 5px; }
+    .label { font-size: 11px; color: #8d8d99; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+    
+    .btn-download { background: var(--accent-color); color: white; border: none; padding: 12px 20px; font-size: 14px; font-weight: bold; border-radius: 6px; cursor: pointer; text-decoration: none; display: inline-block; margin-bottom: 20px; }
+    .btn-download:hover { background: #00875f; }
+    .table-container { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th, td { padding: 15px; border-bottom: 1px solid var(--border-color); }
+    th { background: #1c1c22; color: #e1e1e6; font-size: 14px; }
+    tr:hover { background: #1c1c22; }
+    .text-bill { color: var(--bill-color); font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1><i class="fas fa-charging-station" style="color: var(--accent-color);"></i> Hall Management by IRZA Labs</h1>
+      <!-- লগআউট বাটন -->
+      <a href="/api/logout" class="btn-logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    </div>
+    
+    <div class="grid">
+      <div class="card"><i class="fas fa-bolt icon" style="color:#f1c40f;"></i><div><div class="label">Voltage</div><div class="value" id="voltage">0.0V</div></div></div>
+      <div class="card"><i class="fas fa-microchip icon" style="color:#3498db;"></i><div><div class="label">Current</div><div class="value" id="current">0.00A</div></div></div>
+      <div class="card"><i class="fas fa-plug icon" style="color:#e74c3c;"></i><div><div class="label">Power</div><div class="value" id="power">0.0W</div></div></div>
+      <div class="card"><i class="fas fa-leaf icon" style="color:#2ecc71;"></i><div><div class="label">Energy Consumed</div><div class="value" id="energy">0.000 kWh</div></div></div>
+      <div class="card"><i class="fas fa-wave-square icon" style="color:#9b59b6;"></i><div><div class="label">Frequency</div><div class="value" id="frequency">0.0 Hz</div></div></div>
+      <div class="card"><i class="fas fa-percent icon" style="color:#e67e22;"></i><div><div class="label">Power Factor</div><div class="value" id="pf">0.00</div></div></div>
+      <div class="card bill-card"><i class="fas fa-money-bill-wave icon" style="color:var(--bill-color);"></i><div><div class="label" style="color:var(--bill-color);">Total Bill (Live)</div><div class="value" id="bill" style="color:var(--bill-color);">৳ 0.00</div></div></div>
+    </div>
+
+    <a href="/api/download" class="btn-download"><i class="fas fa-file-download"></i> Export Full Bill Report (CSV)</a>
+
+    <h3><i class="fas fa-history"></i> Real-time Cost & Load Logs</h3>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Voltage</th>
+            <th>Current</th>
+            <th>Power (W)</th>
+            <th>Frequency</th>
+            <th>P.F.</th>
+            <th>Energy (kWh)</th>
+            <th>Calculated Bill</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const socket = io();
+    const tableBody = document.getElementById('tableBody');
+    const UNIT_PRICE = 7.50; 
+
+    fetch('/api/history')
+      .then(res => res.json())
+      .then(data => {
+        data.forEach(item => addRowToTable(item, false));
+      });
+
+    socket.on('powerUpdate', (data) => {
+        const energyVal = parseFloat(data.energy) || 0;
+        const totalBill = (energyVal * UNIT_PRICE).toFixed(2);
+
+        document.getElementById('voltage').innerText = data.voltage + 'V';
+        document.getElementById('current').innerText = data.current + 'A';
+        document.getElementById('power').innerText = data.power + 'W';
+        document.getElementById('energy').innerText = energyVal.toFixed(3) + ' kWh';
+        document.getElementById('frequency').innerText = (data.frequency || 0) + ' Hz';
+        document.getElementById('pf').innerText = data.pf || '0.00';
+        document.getElementById('bill').innerText = '৳ ' + totalBill;
+
+        data.calculatedBill = totalBill;
+        addRowToTable(data, true);
+    });
+
+    function addRowToTable(item, isNew) {
+        const time = item.timestamp ? new Date(item.timestamp).toLocaleTimeString() : new Date().toLocaleTimeString();
+        const energyVal = parseFloat(item.energy) || 0;
+        const billVal = item.calculatedBill || (energyVal * UNIT_PRICE).toFixed(2);
+
+        const row = `<tr>
+            <td>${time}</td>
+            <td>${item.voltage}V</td>
+            <td>${item.current}A</td>
+            <td>${item.power}W</td>
+            <td>${item.frequency || 0} Hz</td>
+            <td>${item.pf || 0}</td>
+            <td>${energyVal.toFixed(3)} kWh</td>
+            <td class="text-bill">৳ ${billVal}</td>
+        </tr>`;
+        
+        if (isNew) {
+            tableBody.insertAdjacentHTML('afterbegin', row);
+            if (tableBody.children.length > 10) { tableBody.lastElementChild.remove(); }
+        } else {
+            tableBody.insertAdjacentHTML('beforeend', row);
+        }
+    }
+  </script>
+</body>
+</html>
