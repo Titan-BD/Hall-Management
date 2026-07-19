@@ -29,7 +29,7 @@ const PowerDataSchema = new mongoose.Schema({
 });
 const PowerData = mongoose.model('PowerData', PowerDataSchema);
 
-// ESP32 থেকে ডেটা রিসিভ ও সেভ
+// ESP32 থেকে ডেটা রিসিভ
 app.post('/api/data', async (req, res) => {
     try {
         const newData = new PowerData(req.body);
@@ -51,16 +51,21 @@ app.get('/api/history', async (req, res) => {
     }
 });
 
-// সম্পূর্ণ ডেটা CSV আকারে ডাউনলোড করার জন্য
+// এক্সেল/CSV ডাউনলোডে বিল কলাম যুক্ত করা
 app.get('/api/download', async (req, res) => {
     try {
         const data = await PowerData.find().sort({ timestamp: -1 });
-        let csv = 'Timestamp,Voltage(V),Current(A),Power(W),Energy(kWh)\n';
+        const UNIT_PRICE = 7.50; // BD Unit Price
+        
+        let csv = 'Timestamp,Voltage(V),Current(A),Power(W),Energy(kWh),Total Bill(BDT)\n';
+        
         data.forEach(row => {
-            csv += `${row.timestamp.toISOString()},${row.voltage},${row.current},${row.power},${row.energy}\n`;
+            const bill = (row.energy * UNIT_PRICE).toFixed(2);
+            csv += `${row.timestamp.toISOString()},${row.voltage},${row.current},${row.power},${row.energy},${bill}\n`;
         });
+        
         res.setHeader('Content-Type', 'text/csv');
-        res.setHeader('Content-Disposition', 'attachment; filename=power_report.csv');
+        res.setHeader('Content-Disposition', 'attachment; filename=professional_billing_report.csv');
         res.status(200).send(csv);
     } catch (err) {
         res.status(500).send({ error: err.message });
